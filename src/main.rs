@@ -1,3 +1,5 @@
+mod renderer;
+
 use std::{borrow::Cow, process::exit};
 
 use winit::{
