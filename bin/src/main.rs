@@ -1,12 +1,7 @@
-mod renderer;
-
 use std::process::exit;
 
-use renderer::{RenderPassExecutor, RenderingContext, WindowDimensions};
-use winit::{
-    event::{Event, WindowEvent},
-    event_loop::EventLoop,
-};
+use renderer::{RenderingContext, RenderPassExecutor, WindowDimensions};
+use winit::{event_loop::EventLoop, event::{Event, WindowEvent}};
 
 fn main() {
     let event_loop = EventLoop::new();
