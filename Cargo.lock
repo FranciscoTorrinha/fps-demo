@@ -492,6 +492,7 @@ name = "fps-demo"
 version = "0.1.0"
 dependencies = [
  "pollster",
+ "renderer",
  "wgpu",
  "winit",
 ]
@@ -1170,6 +1171,15 @@ name = "renderdoc-sys"
 version = "1.0.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "216080ab382b992234dda86873c18d4c48358f5cfcb70fd693d7f6f2131b628b"
+
+[[package]]
+name = "renderer"
+version = "0.1.0"
+dependencies = [
+ "pollster",
+ "wgpu",
+ "winit",
+]
 
 [[package]]
 name = "rustc-demangle"

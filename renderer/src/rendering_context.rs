@@ -1,10 +1,9 @@
-use std::{cell::RefCell, mem::size_of, sync::Arc};
+use std::sync::Arc;
 
-use wgpu::{
-    Adapter, Buffer, BufferDescriptor, BufferUsages, Device, Instance, Queue, RenderPass, Surface,
-    TextureView, SurfaceTexture,
-};
+use wgpu::{Adapter, Buffer, BufferDescriptor, BufferUsages, Device, Instance, Queue, Surface};
 use winit::window::Window;
+
+use crate::common::{ImplVertex, WindowDimensions};
 
 /**
    * Provides all necessary functionality to interact with WGPU, as of right now
@@ -132,113 +131,11 @@ impl RenderingContext {
     }
 }
 
-#[derive(Debug, Clone, Copy)]
-pub struct WindowDimensions {
-    pub width: u32,
-    pub height: u32,
-}
-
-impl Default for WindowDimensions {
-    fn default() -> Self {
-        Self {
-            width: 800,
-            height: 600,
-        }
-    }
-}
-
-impl WindowDimensions {
-    pub fn new(width: u32, height: u32) -> Self {
-        Self { width, height }
-    }
-}
-
-/**
- * This is a generic implementation for a vertex, it should be able to fulfill most purposes for game dev,
- * however if a custom vertex type is requires use the [ImplVertex] trait
- */
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct GenericVertex {
-    position: [f32; 4],
-    texture: [f32; 2],
-    normal: [f32; 4],
-}
-
-pub trait ImplVertex {
-    fn size(&self) -> usize;
-}
-
-impl ImplVertex for GenericVertex {
-    fn size(&self) -> usize {
-        size_of::<Self>()
-    }
-}
-
-pub struct RenderPassExecutor {
-    objects: RefCell<Vec<Box<dyn RenderableObject>>>,
-    ctx: Arc<RenderingContext>,
-    view: TextureView,
-    frame: SurfaceTexture
-}
-
-impl RenderPassExecutor {
-    pub fn new(ctx: Arc<RenderingContext>) -> Self {
-        let frame = ctx.current_frame();
-        let view = frame
-            .texture
-            .create_view(&wgpu::TextureViewDescriptor::default());
-
-        Self {
-            ctx,
-            objects: RefCell::new(vec![]),
-            view,
-            frame
-        }
-    }
-
-    pub fn queue_object(&self, object: Box<dyn RenderableObject>) {
-        self.objects.borrow_mut().push(object);
-    }
-
-    pub fn submit(self) {
-        let mut encoder = self
-            .ctx
-            .device
-            .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
-        {
-            let mut rpass = encoder.begin_render_pass(&wgpu::RenderPassDescriptor {
-                label: None,
-                color_attachments: &[Some(wgpu::RenderPassColorAttachment {
-                    view: &self.view,
-                    resolve_target: None,
-                    ops: wgpu::Operations {
-                        load: wgpu::LoadOp::Clear(wgpu::Color::BLACK),
-                        store: wgpu::StoreOp::Store,
-                    },
-                })],
-                depth_stencil_attachment: None,
-                timestamp_writes: None,
-                occlusion_query_set: None,
-            });
-
-            self.objects.borrow().iter().for_each(|obj| {
-                obj.render(&mut rpass);
-            })
-        }
-
-        self.ctx.queue.submit(Some(encoder.finish()));
-        self.frame.present();
-    }
-}
-
-pub trait RenderableObject {
-    fn render(&self, rp: &mut RenderPass<'_>);
-}
-
 #[cfg(test)]
 mod test {
-    use super::{GenericVertex, RenderingContext};
+    use crate::common::GenericVertex;
+
+    use super::RenderingContext;
 
     #[test]
     fn create_vertex_buffer() {
