@@ -1,9 +1,12 @@
 use std::sync::Arc;
 
-use wgpu::{Adapter, Buffer, BufferDescriptor, BufferUsages, Device, Instance, Queue, Surface};
+use wgpu::{
+    util::{BufferInitDescriptor, DeviceExt},
+    Adapter, Buffer, BufferUsages, Device, Instance, Queue, Surface, SurfaceCapabilities,
+};
 use winit::window::Window;
 
-use crate::common::{ImplVertex, WindowDimensions};
+use crate::common::{ImplVertex, MemoryLayoutable, WindowDimensions};
 
 /**
    * Provides all necessary functionality to interact with WGPU, as of right now
@@ -22,7 +25,7 @@ pub struct RenderingContext {
     pub device: Device,
     pub queue: Queue,
     adapter: Adapter,
-    surface: Option<Surface>,
+    pub surface: Option<Surface>,
 }
 
 impl RenderingContext {
@@ -77,16 +80,24 @@ impl RenderingContext {
         })
     }
 
-    pub fn create_vertex_buffer(&self, data: &[impl ImplVertex]) -> Option<Buffer> {
-        let size = data.into_iter().map(|vertex| vertex.size() as u64).sum();
-
-        self.device.create_buffer(&BufferDescriptor {
+    pub fn create_vertex_buffer<I>(&self, data: I) -> Buffer
+    where
+        I: Iterator + Clone,
+        I::Item: ImplVertex,
+    {
+        self.device.create_buffer_init(&BufferInitDescriptor {
             label: None,
-            size,
+            contents: &data.layout_memory(),
             usage: BufferUsages::VERTEX,
-            mapped_at_creation: false,
-        });
-        None
+        })
+    }
+
+    pub fn create_index_buffer(&self, data: &[u16]) -> Buffer {
+        self.device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: bytemuck::cast_slice(data),
+            usage: BufferUsages::INDEX,
+        })
     }
 
     pub fn current_frame(&self) -> wgpu::SurfaceTexture {
@@ -96,6 +107,14 @@ impl RenderingContext {
             .unwrap()
             .get_current_texture()
             .unwrap()
+    }
+
+    pub fn surface_capabilities(&self) -> SurfaceCapabilities {
+        assert!(self.surface.is_some());
+        self.surface
+            .as_ref()
+            .unwrap()
+            .get_capabilities(&self.adapter)
     }
 
     fn create_swapchain(
@@ -141,6 +160,6 @@ mod test {
     fn create_vertex_buffer() {
         let ctx = RenderingContext::new(None);
         let buffer = vec![GenericVertex::default(), GenericVertex::default()];
-        ctx.create_vertex_buffer(&buffer);
+        ctx.create_vertex_buffer(buffer.into_iter());
     }
 }
