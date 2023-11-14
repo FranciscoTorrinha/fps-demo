@@ -1,6 +1,9 @@
 use crate::{
-    renderer::RenderableObject, vertex::GenericVertex, RenderPassExecutor, RenderingContext,
+    renderer::RenderableObject,
+    vertex::{GenericVertex, MVPBuff},
+    RenderPassExecutor, RenderingContext,
 };
+use nalgebra::Matrix4;
 use std::{borrow::Cow, sync::Arc};
 use uuid::Uuid;
 use wgpu::{Buffer, RenderPipeline, TextureView};
@@ -67,7 +70,7 @@ impl TrianglePrimitive {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
-                    buffers: &[GenericVertex::description()],
+                    buffers: &[GenericVertex::description(), MVPBuff::description()],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
@@ -107,11 +110,22 @@ impl<'rp> RenderableObject for TrianglePrimitive {
         self.uuid
     }
 
-    fn draw(&self, rp_exec: &mut RenderPassExecutor, view: &TextureView) {
+    fn draw(
+        &self,
+        rp_exec: &mut RenderPassExecutor,
+        view: &TextureView,
+        mvp: Option<Matrix4<f32>>,
+        ctx: Arc<RenderingContext>,
+    ) {
+        let mvp_buff = match mvp {
+            Some(m) => ctx.create_vertex_buffer([MVPBuff::from_mat4(m)].into_iter()),
+            None => ctx.create_vertex_buffer([MVPBuff::from_mat4(Matrix4::identity())].into_iter()),
+        };
         rp_exec.queue_object(
             &self.pipeline,
             &self.vertex_buffer,
             &self.index_buffer,
+            &mvp_buff,
             view,
         );
     }

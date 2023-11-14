@@ -23,6 +23,7 @@ impl RenderPassExecutor {
         pipeline: &RenderPipeline,
         vertex_buffer: &Buffer,
         index_buffer: &Buffer,
+        mvp_buffer: &Buffer,
         view: &TextureView,
     ) {
         let mut render_pass: RenderPass<'_> =
@@ -44,6 +45,7 @@ impl RenderPassExecutor {
         render_pass.set_pipeline(pipeline);
         render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
+        render_pass.set_vertex_buffer(1, mvp_buffer.slice(..));
         render_pass.draw_indexed(0..3, 0, 0..1);
     }
 

@@ -1,5 +1,6 @@
 use std::{process::exit, sync::Arc};
 
+use nalgebra::Matrix4;
 use uuid::Uuid;
 use wgpu::TextureView;
 use winit::{
@@ -8,13 +9,13 @@ use winit::{
     window::Window,
 };
 
-use crate::{RenderPassExecutor, RenderingContext, WindowDimensions};
+use crate::{RenderPassExecutor, RenderingContext, Scene, SceneObject, WindowDimensions};
 
 pub struct Renderer {
     rendering_context: Arc<RenderingContext>,
     event_loop: EventLoop<()>,
     window: Window,
-    objects: Vec<Box<dyn RenderableObject>>,
+    scene: Scene,
 }
 
 impl Renderer {
@@ -32,16 +33,18 @@ impl Renderer {
             .build(&event_loop)
             .unwrap();
 
+        let rendering_context = RenderingContext::new(Some(&window));
+
         Self {
-            rendering_context: RenderingContext::new(Some(&window)),
+            scene: Scene::new(rendering_context.clone(), window_dimensions),
+            rendering_context,
             event_loop,
             window,
-            objects: vec![],
         }
     }
 
-    pub fn add_object(&mut self, obj: Box<dyn RenderableObject>) {
-        self.objects.push(obj);
+    pub fn add_object(&mut self, obj: Arc<SceneObject>) {
+        self.scene.add_object(obj);
     }
 
     /// TEMP FUNCTION NEEDS TO BE REMOVED ASAP
@@ -60,9 +63,7 @@ impl Renderer {
 
                     let mut executor = RenderPassExecutor::new(self.rendering_context.clone());
 
-                    self.objects.iter().for_each(|obj| {
-                        obj.draw(&mut executor, &view);
-                    });
+                    self.scene.draw(&mut executor, &view);
 
                     executor.submit(frame);
                 }
@@ -94,5 +95,11 @@ impl Renderer {
 
 pub trait RenderableObject {
     fn get_uuid(&self) -> Uuid;
-    fn draw(&self, rp_exec: &mut RenderPassExecutor, view: &TextureView);
+    fn draw(
+        &self,
+        rp_exec: &mut RenderPassExecutor,
+        view: &TextureView,
+        mvp: Option<Matrix4<f32>>,
+        ctx: Arc<RenderingContext>,
+    );
 }
