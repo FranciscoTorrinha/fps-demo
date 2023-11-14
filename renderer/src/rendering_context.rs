@@ -6,7 +6,10 @@ use wgpu::{
 };
 use winit::window::Window;
 
-use crate::common::{ImplVertex, MemoryLayoutable, WindowDimensions};
+use crate::{
+    common::WindowDimensions,
+    vertex::{ImplVertex, MemoryLayoutable},
+};
 
 /**
    * Provides all necessary functionality to interact with WGPU, as of right now
@@ -152,7 +155,8 @@ impl RenderingContext {
 
 #[cfg(test)]
 mod test {
-    use crate::common::GenericVertex;
+
+    use crate::vertex::GenericVertex;
 
     use super::RenderingContext;
 

@@ -1,4 +1,6 @@
-use crate::{renderer::RenderableObject, GenericVertex, RenderPassExecutor, RenderingContext};
+use crate::{
+    renderer::RenderableObject, vertex::GenericVertex, RenderPassExecutor, RenderingContext,
+};
 use std::{borrow::Cow, sync::Arc};
 use uuid::Uuid;
 use wgpu::{Buffer, RenderPipeline, TextureView};
