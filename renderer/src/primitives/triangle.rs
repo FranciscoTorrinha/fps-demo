@@ -6,7 +6,7 @@ use crate::{
 use nalgebra::Matrix4;
 use std::{borrow::Cow, sync::Arc};
 use uuid::Uuid;
-use wgpu::{Buffer, RenderPipeline, TextureView};
+use wgpu::{BindGroupLayout, Buffer, RenderPipeline, TextureView};
 
 #[derive(Debug)]
 pub struct TrianglePrimitive {
@@ -14,6 +14,7 @@ pub struct TrianglePrimitive {
     vertex_buffer: Buffer,
     index_buffer: Buffer,
     pipeline: RenderPipeline,
+    bind_group_layout: BindGroupLayout,
 }
 
 impl TrianglePrimitive {
@@ -45,11 +46,27 @@ impl TrianglePrimitive {
 
         let swapchain_format = ctx.surface_capabilities().formats[0];
 
+        let bind_group_layout =
+            ctx.device
+                .create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+                    label: None,
+                    entries: &[wgpu::BindGroupLayoutEntry {
+                        binding: 0,
+                        visibility: wgpu::ShaderStages::VERTEX,
+                        ty: wgpu::BindingType::Buffer {
+                            ty: wgpu::BufferBindingType::Uniform,
+                            has_dynamic_offset: false,
+                            min_binding_size: wgpu::BufferSize::new(64),
+                        },
+                        count: None,
+                    }],
+                });
+
         let pipeline_layout = ctx
             .device
             .create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
                 label: None,
-                bind_group_layouts: &[],
+                bind_group_layouts: &[&bind_group_layout],
                 push_constant_ranges: &[],
             });
 
@@ -70,7 +87,7 @@ impl TrianglePrimitive {
                 vertex: wgpu::VertexState {
                     module: &shader,
                     entry_point: "vs_main",
-                    buffers: &[GenericVertex::description(), MVPBuff::description()],
+                    buffers: &[GenericVertex::description()],
                 },
                 fragment: Some(wgpu::FragmentState {
                     module: &shader,
@@ -98,6 +115,7 @@ impl TrianglePrimitive {
             vertex_buffer,
             index_buffer,
             pipeline,
+            bind_group_layout,
             uuid: Uuid::new_v4(),
         })
     }
@@ -118,14 +136,27 @@ impl<'rp> RenderableObject for TrianglePrimitive {
         ctx: Arc<RenderingContext>,
     ) {
         let mvp_buff = match mvp {
-            Some(m) => ctx.create_vertex_buffer([MVPBuff::from_mat4(m)].into_iter()),
-            None => ctx.create_vertex_buffer([MVPBuff::from_mat4(Matrix4::identity())].into_iter()),
+            Some(m) => ctx.create_uniform_buffer(MVPBuff::from_mat4(m)),
+            None => ctx.create_uniform_buffer(MVPBuff::from_mat4(Matrix4::identity())),
         };
+        // let mvp_buff = ctx.create_uniform_buffer(MVPBuff::from_mat4(Matrix4::identity()));
+
+        println!("MVP: {}", mvp.unwrap());
+
+        let bind_group = ctx.device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &self.bind_group_layout,
+            entries: &[wgpu::BindGroupEntry {
+                binding: 0,
+                resource: mvp_buff.as_entire_binding(),
+            }],
+            label: None,
+        });
+
         rp_exec.queue_object(
             &self.pipeline,
             &self.vertex_buffer,
             &self.index_buffer,
-            &mvp_buff,
+            &bind_group,
             view,
         );
     }

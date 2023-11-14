@@ -95,6 +95,14 @@ impl RenderingContext {
         })
     }
 
+    pub fn create_uniform_buffer(&self, data: impl ImplVertex) -> Buffer {
+        self.device.create_buffer_init(&BufferInitDescriptor {
+            label: None,
+            contents: &data.raw(),
+            usage: BufferUsages::UNIFORM | BufferUsages::COPY_DST,
+        })
+    }
+
     pub fn create_index_buffer(&self, data: &[u16]) -> Buffer {
         self.device.create_buffer_init(&BufferInitDescriptor {
             label: None,

@@ -1,6 +1,8 @@
 use std::sync::Arc;
 
-use wgpu::{Buffer, CommandEncoder, RenderPass, RenderPipeline, SurfaceTexture, TextureView};
+use wgpu::{
+    BindGroup, Buffer, CommandEncoder, RenderPass, RenderPipeline, SurfaceTexture, TextureView,
+};
 
 use crate::rendering_context::RenderingContext;
 
@@ -23,7 +25,7 @@ impl RenderPassExecutor {
         pipeline: &RenderPipeline,
         vertex_buffer: &Buffer,
         index_buffer: &Buffer,
-        mvp_buffer: &Buffer,
+        bind_group: &BindGroup,
         view: &TextureView,
     ) {
         let mut render_pass: RenderPass<'_> =
@@ -45,7 +47,7 @@ impl RenderPassExecutor {
         render_pass.set_pipeline(pipeline);
         render_pass.set_index_buffer(index_buffer.slice(..), wgpu::IndexFormat::Uint16);
         render_pass.set_vertex_buffer(0, vertex_buffer.slice(..));
-        render_pass.set_vertex_buffer(1, mvp_buffer.slice(..));
+        render_pass.set_bind_group(0, bind_group, &[]);
         render_pass.draw_indexed(0..3, 0, 0..1);
     }
 

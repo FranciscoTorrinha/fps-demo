@@ -41,6 +41,9 @@ impl SceneObject {
         view: &TextureView,
         ctx: Arc<RenderingContext>,
     ) {
+        println!("Model: {}", self.model);
+        println!("View: {}", camera.view);
+        println!("Proj: {}", camera.projection);
         let mvp = camera.calculate_mvp(self.model);
         self.renderable.draw(executor, view, Some(mvp), ctx.clone());
     }
@@ -57,7 +60,7 @@ impl Scene {
         Self {
             camera: Camera::with_perpective(
                 window_dimensions,
-                Point3::new(0.0, 0.0, -5.0),
+                Point3::new(0.0, 0.0, 5.0),
                 Point3::new(0.0, 0.0, 0.0),
             ),
             objects: vec![],
